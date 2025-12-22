@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+    napcat:
+        environment:
+            - NAPCAT_UID=1003
+            - NAPCAT_GID=1003
+        ports:
+            - "31000:3000"
+            - "31001:3001"
+            - "31002:6099"
+        volumes:
+            - /home/milo/nyabot:/app/nyabot
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        container_name: napcat-nya
+        network_mode: bridge
+        image: mlikiowa/napcat-docker:latest
+        mem_limit: 512m
+        memswap_limit: 1.5g
