@@ -12,8 +12,8 @@ class ManagerSummary:
     def __init__(self):
         self.patterns = [r"^\.总结 (\d+)$"]
         self.collectionheaders = ["default"]
-        self.groups = [897830548,979088841,861678361] 
-        self.collections = []
+        self.groups = [] 
+        self.collections = {}
 
         self.client = client
 

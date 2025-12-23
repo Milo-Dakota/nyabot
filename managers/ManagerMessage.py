@@ -4,12 +4,10 @@ from datetime import datetime
 
 class ManagerMessage:
     def __init__(self):
-        self.patterns = []
+        self.patterns = [r"(?s).*"]
         self.collectionheaders = ["default"]
         self.groups = [] 
         self.collections = {}
-
-        self.client = client
 
     def proccess(self, event):
 

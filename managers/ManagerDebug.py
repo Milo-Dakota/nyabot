@@ -2,10 +2,10 @@ import re
 
 class ManagerDebug:
     def __init__(self):
-        self.patterns = []
+        self.patterns = [r"(?s).*"]
         self.collectionheaders = []
-        self.groups = [897830548,979088841,861678361] 
-        self.collections = []
+        self.groups = [] 
+        self.collections = {}
 
         self.debug = 0
 

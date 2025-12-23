@@ -4,8 +4,8 @@ class ManagerTarot:
     def __init__(self):
         self.patterns = [r"^\.塔罗牌$"]
         self.collectionheaders = []
-        self.groups = [897830548, 979088841, 861678361]
-        self.collections = []
+        self.groups = []
+        self.collections = {}
     
     def proccess(self, event):
         tarot = random.choice(tarots)
@@ -24,19 +24,19 @@ class ManagerTarot:
                     {
                         "type": "text",
                         "data": {
-                            "text": f"抽到了：\n『{tarot["card"]}』\n『{tarot["master"]}』的替身『{tarot["name"]}』"
+                            "text": f"抽到了：\n『{tarot['card']}』\n『{tarot['master']}』的替身『{tarot['name']}』"
                         }
                     },
                     {
                         "type": "image",
                         "data": {
-                            "file": f"file:///app/nyabot/tarots/{tarot["image"]}.png"
+                            "file": f"file:///app/nyabot/tarots/{tarot['image']}.png"
                         }
                     },
                     {
                         "type": "text",
                         "data": {
-                            "text": f"替身能力：\n{tarot["magic"]}!"
+                            "text": f"替身能力：\n{tarot['magic']}!"
                         }
                     }
                 ]
