@@ -9,10 +9,9 @@ class ManagerMessage:
         self.groups = [] 
         self.collections = {}
 
-    def proccess(self, event):
+    def process(self, event):
 
-        i = self.collections[0].index(event["group_id"])
-        collection = self.collections[0][i]
+        collection = self.collections[event["group_id"]]["default"]
 
         x=event["sender"]["card"]
         if not x:
@@ -65,7 +64,7 @@ def extract_info(event):
             else:
                 result.append({
                     "type":"image",
-                    "summary":"image"
+                    "summary":"[图片]"
                     })  
 
         elif msg["type"] == "at":
@@ -76,6 +75,7 @@ def extract_info(event):
 
         else:
             pass
+    return result
 
 face_dic = {
     0: "[惊讶]",

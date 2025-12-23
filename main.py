@@ -30,14 +30,16 @@ for manager_name, manager_config in config['managers'].items():
             
 
             for pattern in instance.patterns:
-                triggers[pattern] = manager_name
+                if pattern not in triggers:
+                    triggers[pattern] = []
+                triggers[pattern].append(manager_name)
             
             instance.groups = manager_config.get('groups', [])
 
             for group in instance.groups:
-                instance.collections[str(group)] = {}
+                instance.collections[group] = {}
                 for header in instance.collectionheaders:
-                    instance.collections[str(group)][header] = db[f"{header}_{group}"]
+                    instance.collections[group][header] = db[f"{header}_{group}"]
 
             print(f"✓ 已加载: {manager_name}")
 
@@ -49,11 +51,12 @@ async def handle_websocket(websocket):
 
         if event.get("post_type") == "message" and event.get("message_type") == "group":
             raw_message = event["raw_message"]
-            for pattern, manager_name in triggers.items():
+            for pattern, managernames in triggers.items():
                 if re.match(pattern, raw_message):
-                    manager = managers[manager_name]
-                    response = manager.process(event)
-                    await websocket.send(json.dumps(response))
+                    for manager_name in managernames:
+                        manager = managers[manager_name]
+                        response = manager.process(event)
+                        await websocket.send(json.dumps(response))
 
         elif event.get("post_type") == "notice" and event.get("target_id") == event.get("self_id"):
             response = {

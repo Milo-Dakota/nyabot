@@ -2,6 +2,7 @@ import json
 from bson import json_util
 from datetime import datetime
 from openai import OpenAI
+import re
 
 client = OpenAI(
     api_key="sk-cc80ug5d4bm9wdqpe4xybzusgmlothp7otnb9emcv7whf4o9",
@@ -17,11 +18,10 @@ class ManagerSummary:
 
         self.client = client
 
-    def proccess(self, event):
+    def process(self, event):
         raw_message = event["raw_message"]
 
-        i = self.collections[0].index(event["group_id"])
-        collection = self.collections[0][i]
+        collection = self.collections[event["group_id"]]["default"]
 
         match = re.match(self.patterns[0], raw_message)
         message_count = int(match.group(1))
@@ -48,28 +48,15 @@ def ai_summary(content):
     messages=[
         {
             "role": "user", 
-            "content": prompt + content
+            "content": prompt + f"{content}"
         }
     ],
     stream=False
     )
+    print(f"{content}")
     return response.choices[0].message.content
 
 prompt = """你是一个专业的QQ群聊内容总结助手。请根据提供的群聊消息数据，生成一份结构清晰、重点突出的纯文本群聊总结报告。
-
-【数据字段说明】
-- `群友`：发言者的群昵称或备注，这是主要的身份标识
-- `群友id`：发言者的QQ号，仅用于理解`@消息`中提及的对象，总结时不要显示此ID
-- `消息id`：消息的唯一标识，仅用于理解`回复消息`的对话关系，总结时不要显示此ID
-- `发言`：消息的实际内容（已清理CQ码）
-- `时间`：消息发送时间
-
-【CQ码处理指南】
-- `[CQ:face,id=123]` → 表情符号，总结时忽略或描述为"发表情"
-- `[CQ:image,file=xxx.jpg]` → 图片，总结时忽略或总结为"分享图片"或根据上下文推断图片内容
-- `[CQ:at,qq=123456]` → @某人，总结时保留"@用户名"的语义
-- `[CQ:reply,id=xxx]` → 回复消息，总结时注意对话的连贯性
-- `[CQ:share,url=...]` → 分享链接，总结为"分享链接"或根据标题描述内容
 
 【核心原则】
 输出必须是纯文本，仅使用以下符号进行排版：换行、空格、【】、◆、→、`等。严禁使用Markdown

@@ -7,7 +7,7 @@ class ManagerTarot:
         self.groups = []
         self.collections = {}
     
-    def proccess(self, event):
+    def process(self, event):
         tarot = random.choice(tarots)
 
         response = {
