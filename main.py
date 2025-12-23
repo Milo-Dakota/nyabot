@@ -3,18 +3,43 @@ import asyncio
 import json
 from websockets import serve
 from pymongo import MongoClient
-from manager_summary import manager_summary
-#from manager_hash import manager_hash
-from manager_debug import manager_debug
-from manager_tarot import manager_tarot
+import yaml
+import importlib
+import re
 
 client = MongoClient("mongodb://localhost:27017")
 
 db = client["Nyabot"]
-group_list=[897830548,979088841,861678361]
-debug_list=[0,0,0]
-collections_message=[db[str(group_list[0])],db[str(group_list[1])],db[str(group_list[2])]]
-collections_image=[db["hash_"+str(group_list[0])],db["hash_"+str(group_list[1])],db["hash_"+str(group_list[2])]]
+
+with open('config.yaml', 'r', encoding='utf-8') as f:
+    config = yaml.safe_load(f)
+
+managers = {}
+triggers = {}
+
+for manager_name, manager_config in config['managers'].items():
+    if manager_config.get('enabled', True):
+        try:
+            # 动态导入模块（假设文件在managers文件夹下）
+            module = importlib.import_module(f'managers.{manager_name}')
+            # 获取类（假设类名和文件名一样）
+            manager_class = getattr(module, manager_name)
+            # 创建实例
+            instance = manager_class()
+            managers[manager_name] = instance
+            print(f"✓ 已加载: {manager_name}")
+
+            for pattern in instance.patterns:
+                triggers[pattern] = manager_name
+            
+            instance.groups = manager_config.get('groups', [])
+
+            for group in instance.groups:
+                for header in instance.collectionheaders:
+                    instance.collections[str(group)][header] = db[f"{group}_{header}"]
+
+        except Exception as e:
+            print(f"✗ 加载 {manager_name} 失败: {e}")
 
 async def handle_websocket(websocket):
 
@@ -22,27 +47,13 @@ async def handle_websocket(websocket):
 
         event = json.loads(message)
 
-        
         if event.get("post_type") == "message" and event.get("message_type") == "group":
-            if event["group_id"] in group_list:
-                i=group_list.index(event["group_id"])
-
-                response0,debug = manager_debug(event,debug_list[i])
-                debug_list[i]=debug
-                if response0: 
-                    await websocket.send(json.dumps(response0))               
-
-                response1 = manager_summary(event,collections_message[i])
-                if response1: 
-                    await websocket.send(json.dumps(response1))
-
-                #response2 = manager_hash(event,collections_image[i])
-                #if response2: 
-                    #await websocket.send(json.dumps(response2))
-
-                response3 = manager_tarot(event)
-                if response3: 
-                    await websocket.send(json.dumps(response3))
+            raw_message = event["raw_message"]
+            for pattern, manager_name in triggers.items():
+                if re.match(pattern, raw_message):
+                    manager = managers[manager_name]
+                    response = manager.process(event)
+                    await websocket.send(json.dumps(response))
 
         elif event.get("post_type") == "notice" and event.get("target_id") == event.get("self_id"):
             response = {

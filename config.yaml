@@ -1,0 +1,24 @@
+managers:
+  ManagerDebug:
+    enabled: true
+    groups:
+      - 979088841
+      - 897830548
+  
+  ManagerMessage:
+    enabled: true
+    groups:
+      - 979088841
+      - 897830548
+
+  ManagerSummary:
+    enabled: true
+    groups:
+      - 979088841
+      - 897830548
+
+  ManagerTarot:
+    enabled: true
+    groups:
+      - 979088841
+      - 897830548

@@ -2,21 +2,60 @@ import json
 from bson import json_util
 from datetime import datetime
 from openai import OpenAI
-import re
 
 client = OpenAI(
     api_key="sk-cc80ug5d4bm9wdqpe4xybzusgmlothp7otnb9emcv7whf4o9",
     base_url="https://api.xiaomimimo.com/v1"
 )
 
-def ai_summary(messages):
+class ManagerSummary:
+    def __init__(self):
+        self.patterns = [r"^\.总结 (\d+)$"]
+        self.collectionheaders = ["default"]
+        self.groups = [897830548,979088841,861678361] 
+        self.collections = []
+
+        self.client = client
+
+    def proccess(self, event):
+        raw_message = event["raw_message"]
+
+        i = self.collections[0].index(event["group_id"])
+        collection = self.collections[0][i]
+
+        match = re.match(self.patterns[0], raw_message)
+        message_count = int(match.group(1))
+
+        messages = list(collection.find({}, {"_id": 0}).sort("时间", -1).limit(message_count))
+        messages.reverse()
+        for msg in messages:
+            msg['时间'] = msg['时间'].strftime("%m-%d %H:%M")
+
+        summary = ai_summary(messages)
+        response = {
+            "action": "send_group_msg",
+            "params": {
+                "group_id": event["group_id"],
+                "message": summary
+            }
+        }
+        return response
+
+def ai_summary(content):
     
     response = client.chat.completions.create(
-model="mimo-v2-flash",
-messages=[
-    {
-        "role": "user", 
-        "content": """你是一个专业的QQ群聊内容总结助手。请根据提供的群聊消息数据，生成一份结构清晰、重点突出的纯文本群聊总结报告。
+    model="mimo-v2-flash",
+    messages=[
+        {
+            "role": "user", 
+            "content": prompt + content
+        }
+    ],
+    stream=False
+    )
+    return response.choices[0].message.content
+
+prompt = """你是一个专业的QQ群聊内容总结助手。请根据提供的群聊消息数据，生成一份结构清晰、重点突出的纯文本群聊总结报告。
 
 【数据字段说明】
 - `群友`：发言者的群昵称或备注，这是主要的身份标识
@@ -54,51 +93,9 @@ messages=[
 
 【💎 其他亮点】
 - 成员F 分享了 [资源/图片/见闻]。
-- 成员G 提出了一个关于 [问题] 的疑问。"""+f"请严格按照上述格式和要求，对以下群聊消息进行总结：\n\n{messages}"
-    }
-],
-        stream=False
-    )
-    return response.choices[0].message.content
+- 成员G 提出了一个关于 [问题] 的疑问。
 
-def manager_summary(event, collection):
-    raw_message = event["raw_message"]
+请严格按照上述格式和要求，对以下群聊消息进行总结：
 
-    pattern = r"^\.总结 (\d+)$"
-    match = re.match(pattern, raw_message)
 
-    if match:
-        message_count = int(match.group(1))
-
-        messages = list(collection.find({}, {"_id": 0}).sort("时间", -1).limit(message_count))
-        messages.reverse()
-        for msg in messages:
-            msg['时间'] = msg['时间'].strftime("%m-%d %H:%M")
-        summary = ai_summary(messages)
-        response = {
-            "action": "send_group_msg",
-            "params": {
-                "group_id": event["group_id"],
-                "message": summary
-            }
-        }
-        return response
-    else:
-        x=event["sender"]["card"]
-        if not x:
-            x=event["sender"]["nickname"]
-        new_message = {
-            "群友": x,
-            "群友id": event["user_id"],
-            "发言": raw_message,
-            "消息id": event["message_id"],
-            "时间": datetime.now()
-        }
-        collection.insert_one(new_message)
-    return
-
-def delete_processed_messages(messages, collection):
-    if not messages:
-        return
-    message_ids = [msg["_id"] for msg in messages]
-    collection.delete_many({"_id": {"$in": message_ids}})
+"""
